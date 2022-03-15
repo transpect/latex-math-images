@@ -1,0 +1,53 @@
+%%
+%% This is file `mathfig.sty'.
+%%
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from transpect-headings.sty.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file transpect.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%
+%% Maintainer: p.schulz@le-tex.de
+%%
+%% latex  -  texlive >= 2019
+%%
+\NeedsTeXFormat{LaTeX2e}[2018/12/01]
+\ProvidesPackage{mathfig}
+    [2021-10-04 0.2 le-tex mathfig.sty]
+
+\newwrite\outfile
+\immediate\openout\outfile=\jobname.json
+
+\ifx\directlua\relax\else
+  \RequirePackage{luatex85}
+\fi
+
+%% Additional Packages
+\RequirePackage{tensor}
+
+\newbox\figbox
+\long\def\outputdepth#1{%
+  \global\setbox\figbox\hbox{#1\ifhmode\unskip\fi}%
+  \@tempdimb=\ht\figbox\relax
+  \@tempdimc=\dp\figbox\relax
+  \advance\@tempdimb\@tempdimc\relax
+  \@tempdima=\dimexpr\p@*\@tempdimc/\@tempdimb\relax
+  \xdef\imageratio{\strip@pt\@tempdima}%
+  \immediate\write\outfile{%
+    \string{"image-ratio":"\imageratio",^^J
+      "image-height-pt":"\the\dimexpr\ht\figbox+\dp\figbox\relax",^^J
+      "image-width-pt":"\the\wd\figbox",^^J
+      "image-depth-pt":"\the\dp\figbox"^^J
+    \string}^^J}%
+  %#1%
+  \noindent\usebox\figbox\relax
+}%

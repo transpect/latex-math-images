@@ -1,0 +1,160 @@
+% \usepackage[T1]{fontenc}
+\usepackage{textcomp}
+
+\renewcommand\normalsize{%
+   \@setfontsize\normalsize{10.5bp}{13.5bp}
+   \abovedisplayskip 10bp \@plus2bp \@minus5bp
+   \abovedisplayshortskip 0bp \@plus3bp
+   \belowdisplayshortskip 6bp \@plus3bp \@minus3bp
+   \belowdisplayskip \abovedisplayskip
+   \let\@listi\@listI}
+
+%in Legenden (Bild und Tabelle) Corporate S Pro Light 9,5pt
+%im Tabellenkopf Corporate S Pro Demi 9pt
+%im Tabellen-Body  Corporate S Pro Regular 8,5pt
+%in Boxen Corporate S Pro Regular 9,5pt
+%\fontsize{11pt}{13.6pt}\selectfont\MTVersion{Tab_body}
+
+
+\usepackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{stmaryrd}
+\RequirePackage{mathtools}
+\usepackage[T1]{fontenc} 
+\usepackage[utf8]{inputenc} 
+\usepackage{amsfonts} 
+\usepackage{amsxtra} 
+\usepackage{wasysym} 
+\usepackage{isomath} 
+\usepackage{mathtools} 
+\usepackage{txfonts} 
+\usepackage{upgreek} 
+\usepackage{tensor} 
+\usepackage{pifont} 
+\usepackage{ulem} 
+\usepackage{xfrac} 
+\usepackage{arydshln} 
+\usepackage[ngerman]{babel}
+
+% \usepackage{amssymb}
+%\usepackage{stmaryrd}
+%\usepackage{mathtools}
+\providecommand*{\varGamma}{\Gamma}
+\ifx\mathbold\@undefined\else\providecommand*{\mathbfit}[1]{\mathbold{#1}}\fi
+
+\providecommand*{\tensorsym}[1]{#1}
+
+%\usepackage[stix2,scaled=1.05]{newtxmath}
+
+% \usepackage[no-math]{fontspec}
+% \RequirePackage{etoolbox}
+
+% \let\Bbbk\relax
+% \RequirePackage[subscriptcorrection,slantedGreek,cmcal,mtphrb,mtpfrak]{mtpro2}
+%\usepackage{noto}
+%\let\widering\@undefined
+%\usepackage[adobe-utopia]{mathdesign}
+
+% \let\directlua\@undefined
+% \usepackage[basic,defaultmathsizes,sans,itgreek,mathaccents,nohbar,nolessnomore,noplusnominus,noequal]{mathastext}
+
+% % \DeclareMathSymbol{\mst@varsigma}{\mathalpha}{mtlgrfontlower}{99}%
+% %\let\epsilon\mst@origepsilon
+
+%\MTgreekfont{NotoSans-TLF}
+% \MTDeclareVersion{sans}{T1}{NotoMono-TLF}{m}{n}
+% \MTDeclareVersion{sansbold}{T1}{NotoMono-TLF}{b}{n}
+% \MTDeclareVersion{mono}{T1}{NotoMono-TLF}{m}{n}
+% \MTDeclareVersion{monobold}{T1}{NotoMono-TLF}{b}{n}[bold]
+
+\def\str@sans{sans}
+\def\str@sansbold{sansbold}
+%\usepackage[adobe-utopia,greekuppercase=italicized]{mathdesign}
+\def\upalpha{\ifx\math@version\str@sans\mathrm{\alpha}\else\ifx\math@version\str@sansbold\mathbf{\alpha}\else\alphaup\fi\fi}
+\def\upbeta{\ifx\math@version\str@sans\mathrm{\beta}\else\ifx\math@version\str@sansbold\mathbf{\beta}\else\betaup\fi\fi}
+\def\upgamma{\ifx\math@version\str@sans\mathrm{\gamma}\else\ifx\math@version\str@sansbold\mathbf{\gamma}\else\gammaup\fi\fi}
+\def\updelta{\ifx\math@version\str@sans\mathrm{\delta}\else\ifx\math@version\str@sansbold\mathbf{\delta}\else\deltaup\fi\fi}
+\def\upepsilon{\ifx\math@version\str@sans\mathrm{\epsilon}\else\ifx\math@version\str@sansbold\mathbf{\epsilon}\else\epsilonup\fi\fi}
+\def\upzeta{\ifx\math@version\str@sans\mathrm{\zeta}\else\ifx\math@version\str@sansbold\mathbf{\zeta}\else\zetaup\fi\fi}
+\def\upeta{\ifx\math@version\str@sans\mathrm{\eta}\else\ifx\math@version\str@sansbold\mathbf{\eta}\else\etaup\fi\fi}
+\def\uptheta{\ifx\math@version\str@sans\mathrm{\theta}\else\ifx\math@version\str@sansbold\mathbf{\theta}\else\thetaup\fi\fi}
+\def\upiota{\ifx\math@version\str@sans\mathrm{\iota}\else\ifx\math@version\str@sansbold\mathbf{\iota}\else\iotaup\fi\fi}
+\def\upkappa{\ifx\math@version\str@sans\mathrm{\kappa}\else\ifx\math@version\str@sansbold\mathbf{\kappa}\else\kappaup\fi\fi}
+\def\uplambda{\ifx\math@version\str@sans\mathrm{\lambda}\else\ifx\math@version\str@sansbold\mathbf{\lambda}\else\lambdaup\fi\fi}
+\def\upmu{\ifx\math@version\str@sans\mathrm{\mu}\else\ifx\math@version\str@sansbold\mathbf{\mu}\else\muup\fi\fi}
+\def\upnu{\ifx\math@version\str@sans\mathrm{\nu}\else\ifx\math@version\str@sansbold\mathbf{\nu}\else\nuup\fi\fi}
+\def\upxi{\ifx\math@version\str@sans\mathrm{\xi}\else\ifx\math@version\str@sansbold\mathbf{\xi}\else\xiup\fi\fi}
+\def\uppi{\ifx\math@version\str@sans\mathrm{\pi}\else\ifx\math@version\str@sansbold\mathbf{\pi}\else\piup\fi\fi}
+\def\uprho{\ifx\math@version\str@sans\mathrm{\rho}\else\ifx\math@version\str@sansbold\mathbf{\rho}\else\rhoup\fi\fi}
+\def\upsigma{\ifx\math@version\str@sans\mathrm{\sigma}\else\ifx\math@version\str@sansbold\mathbf{\sigma}\else\sigmaup\fi\fi}
+\def\uptau{\ifx\math@version\str@sans\mathrm{\tau}\else\ifx\math@version\str@sansbold\mathbf{\tau}\else\tauup\fi\fi}
+\def\upupsilon{\ifx\math@version\str@sans\mathrm{\upsilon}\else\ifx\math@version\str@sansbold\mathbf{\upsilon}\else\upsilonup\fi\fi}
+\def\upphi{\ifx\math@version\str@sans\mathrm{\phi}\else\ifx\math@version\str@sansbold\mathbf{\phi}\else\phiup\fi\fi}
+\def\upchi{\ifx\math@version\str@sans\mathrm{\chi}\else\ifx\math@version\str@sansbold\mathbf{\chi}\else\chiup\fi\fi}
+\def\uppsi{\ifx\math@version\str@sans\mathrm{\psi}\else\ifx\math@version\str@sansbold\mathbf{\psi}\else\psiup\fi\fi}
+\def\upomega{\ifx\math@version\str@sans\mathrm{\omega}\else\ifx\math@version\str@sansbold\mathbf{\omega}\else\omegaup\fi\fi}
+\def\upvarepsilon{\ifx\math@version\str@sans\mathrm{\varepsilon}\else\ifx\math@version\str@sansbold\mathbf{\varepsilon}\else\varepsilonup\fi\fi}
+\def\upvartheta{\ifx\math@version\str@sans\mathrm{\vartheta}\else\ifx\math@version\str@sansbold\mathbf{\vartheta}\else\varthetaup\fi\fi}
+\let\upvarkappa\varkappa
+\def\upvarpi{\ifx\math@version\str@sans\mathrm{\varpi}\else\ifx\math@version\str@sansbold\mathbf{\varpi}\else\varpiup\fi\fi}
+\def\upvarrho{\ifx\math@version\str@sans\mathrm{\varrho}\else\ifx\math@version\str@sansbold\mathbf{\varrho}\else\varrhoup\fi\fi}
+\def\upvarsigma{\ifx\math@version\str@sans\mathrm{\varsigma}\else\ifx\math@version\str@sansbold\mathbf{\varsigma}\else\varsigmaup\fi\fi}
+\def\upvarphi{\ifx\math@version\str@sans\mathrm{\varphi}\else\ifx\math@version\str@sansbold\mathbf{\varphi}\else\varphiup\fi\fi}
+\def\upGamma{\ifx\math@version\str@sans\mathrm{\Gamma}\else\ifx\math@version\str@sansbold\mathbf{\Gamma}\else\Gammaup\fi\fi}
+\def\upDelta{\ifx\math@version\str@sans\mathrm{\Delta}\else\ifx\math@version\str@sansbold\mathbf{\Delta}\else\Deltaup\fi\fi}
+\def\upTheta{\ifx\math@version\str@sans\mathrm{\Theta}\else\ifx\math@version\str@sansbold\mathbf{\Theta}\else\Thetaup\fi\fi}
+\def\upLambda{\ifx\math@version\str@sans\mathrm{\Lambda}\else\ifx\math@version\str@sansbold\mathbf{\Lambda}\else\Lambdaup\fi\fi}
+\def\upXi{\ifx\math@version\str@sans\mathrm{\Xi}\else\ifx\math@version\str@sansbold\mathbf{\Xi}\else\Xiup\fi\fi}
+\def\upPi{\ifx\math@version\str@sans\mathrm{\Pi}\else\ifx\math@version\str@sansbold\mathbf{\Pi}\else\Piup\fi\fi}
+\def\upSigma{\ifx\math@version\str@sans\mathrm{\Sigma}\else\ifx\math@version\str@sansbold\mathbf{\Sigma}\else\Sigmaup\fi\fi}
+\def\upUpsilon{\ifx\math@version\str@sans\mathrm{\Upsilon}\else\ifx\math@version\str@sansbold\mathbf{\Upsilon}\else\Upsilonup\fi\fi}
+\def\upPhi{\ifx\math@version\str@sans\mathrm{\Phi}\else\ifx\math@version\str@sansbold\mathbf{\Phi}\else\Phiup\fi\fi}
+\def\upPsi{\ifx\math@version\str@sans\mathrm{\Psi}\else\ifx\math@version\str@sansbold\mathbf{\Psi}\else\Psiup\fi\fi}
+\def\upOmega{\ifx\math@version\str@sans\mathrm{\Omega}\else\ifx\math@version\str@sansbold\mathbf{\Omega}\else\Omegaup\fi\fi}
+
+
+
+
+% \setmainfont[
+%   ItalicFont=CorporateAPro-RegularItalic.otf,
+%   BoldFont=CorporateAPro-Bold.otf,
+%   BoldItalicFont=CorporateAPro-BoldItalic.otf
+%   ]{CorporateAPro-Regular.otf}
+% \usepackage[basic,italic,defaultmathsizes]{mathastext}
+% \Mathastext[normal]
+
+
+\let\Upgamma\upGamma
+\let\Updelta\upDelta
+\let\Uptheta\upTheta
+\let\Uplambda\upLambda
+\let\Upxi\upXi
+\let\Uppi\upPi
+\let\Upsigma\upSigma
+\let\Upupsilon\upUpsilon
+\let\Upphi\upPhi
+\let\Uppsi\upPsi
+\let\Upomega\upOmega
+\let\varpsi\relax\let\upvarpsi\relax
+
+% das jeweils für die unterschiedlichen Schriften deklarieren 
+% \setmainfont[
+%   ItalicFont=CorporateSPro-DemiItalic,
+%   BoldFont=CorporateSPro-Bold,
+%   BoldItalicFont=CorporateSPro-BoldItalic
+% ]{CorporateSPro-Demi.otf}
+% \Mathastext[Tab_head]
+
+% \setmainfont[
+%   ItalicFont=CorporateSPro-RegularItalic,
+%   BoldFont=CorporateSPro-Bold,
+%   BoldItalicFont=CorporateSPro-BoldItalic
+% ]{CorporateSPro-Regular.otf}
+% \Mathastext[Tab_body]
+
+% \setmainfont[
+%   ItalicFont=CorporateSPro-LightItalic,
+%   BoldFont=CorporateSPro-Bold,
+%   BoldItalicFont=CorporateSPro-BoldItalic
+% ]{CorporateSPro-Light.otf}
+% \Mathastext[caption]
