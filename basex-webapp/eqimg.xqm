@@ -72,7 +72,7 @@ declare
 function eqimg:retrieve($filename as xs:string, $customization as xs:string) {
   let $tmpdir as xs:string := '/tmp/' || substring-before($filename, '.'),
       $ext as xs:string := substring-after($filename, '.'),
-      $filepath as xs:string := $tmpdir || '/out.' || $ext
+      $filepath as xs:string := $tmpdir || '/' || if ($ext = 'tex') then 'formula' else 'out' || '.' || $ext
   return (
     web:response-header(
       map {'media-type': web:content-type( $filepath )},
