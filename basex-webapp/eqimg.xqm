@@ -54,6 +54,7 @@ function eqimg:render-mml($mml as document-node(), $customization as xs:string, 
                 $props, 
                 map{$format: '/eqimg/' || $customization || '/retrieve/' || file:name($tmpdir) || '.' || $format},
                 map{'texlog': '/eqimg/' || $customization || '/retrieve/' || file:name($tmpdir) || '.' || 'log'},
+                map{'tex': '/eqimg/' || $customization || '/retrieve/' || file:name($tmpdir) || '.' || 'tex'},
                 map{'status': if ($props?error) then 'error' 
                               else if ($props?image-height-pt = '0.0pt') then 'empty'
                                    else $props?status},
