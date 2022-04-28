@@ -270,7 +270,8 @@ class FormulaBuilder
     eps = File.read(@ofile).split(/^%%EndComments/)
     mout = ""
     for meta in @json
-      mout += "%%#{meta[0]}: #{meta[1]}\n"
+      src = meta[1].gsub(/\n/, "\n%%")
+      mout += "%%#{meta[0]}: #{src}\n"
     end
     neweps = "#{eps[0]}#{mout}%%EndComments#{eps[1]}"
     File.open(@ofile, "w").write(neweps)
