@@ -42,7 +42,7 @@ function eqimg:render-mml($mml as document-node(), $customization as xs:string, 
                                      'build_formula.rb',
                                      '-i', $inputfile, '-o', $outfile, '-l', $logfile, '-m', $jsonfile,
                                      (if ($include-mml) then ('-E', '-M', $mml-path) else ()),
-                                     '-V', $customization, '-D', $downscale
+                                     '-V', $customization, '-D', string($downscale)
                                    ),
                                    map{'dir': $invocation-dir}
                                  ),
