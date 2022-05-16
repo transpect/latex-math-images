@@ -11,7 +11,7 @@ declare
 function eqimg:render-omml($omml as document-node(), $customization as xs:string, $format as xs:string, 
                            $include-tex as xs:boolean, $include-mml as xs:boolean, $downscale as xs:integer) {
   let $mml := xslt:transform($omml, 'omml2mml.xsl')
-  return eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml)
+  return eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml, $downscale)
 };
 
 declare
