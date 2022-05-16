@@ -6,9 +6,10 @@ declare
   %rest:query-param("format", "{$format}", "eps")
   %rest:query-param("tex", "{$include-tex}", "false")
   %rest:query-param("mml", "{$include-mml}", "false")
+  %rest:query-param("downscale", "{$downscale}", 2)
   %rest:produces("text/json")
 function eqimg:render-omml($omml as document-node(), $customization as xs:string, $format as xs:string, 
-                           $include-tex as xs:boolean, $include-mml as xs:boolean) {
+                           $include-tex as xs:boolean, $include-mml as xs:boolean, $downscale as xs:integer) {
   let $mml := xslt:transform($omml, 'omml2mml.xsl')
   return eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml)
 };
@@ -19,9 +20,10 @@ declare
   %rest:query-param("format", "{$format}", "eps")
   %rest:query-param("tex", "{$include-tex}", "false")
   %rest:query-param("include", "{$include-mml}", "false")
+  %rest:query-param("downscale", "{$downscale}", 2)
   %rest:produces("text/json")
 function eqimg:render-mml($mml as document-node(), $customization as xs:string, $format as xs:string, 
-                          $include-tex as xs:boolean, $include-mml as xs:boolean) {
+                          $include-tex as xs:boolean, $include-mml as xs:boolean, $downscale as xs:integer) {
   let $tmpdir as xs:string := file:create-temp-dir('eqimg', ''),
       $mml-path as xs:string := $tmpdir || '/' || 'formula.mml',
       $nothing as item()* := file:write($mml-path, $mml),
@@ -40,7 +42,7 @@ function eqimg:render-mml($mml as document-node(), $customization as xs:string, 
                                      'build_formula.rb',
                                      '-i', $inputfile, '-o', $outfile, '-l', $logfile, '-m', $jsonfile,
                                      (if ($include-mml) then ('-E', '-M', $mml-path) else ()),
-                                     '-V', $customization
+                                     '-V', $customization, '-D', $downscale
                                    ),
                                    map{'dir': $invocation-dir}
                                  ),

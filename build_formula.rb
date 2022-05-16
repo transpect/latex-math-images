@@ -19,7 +19,7 @@ class Options
                   :mmlname, :mmlext, :mmlpath,
                   :verbose, :debug, :silent,
                   :tempdir,
-                  :engine, :texbin, :gsbin,
+                  :engine, :texbin, :gsbin, :downscale,
                   :epsMeta,
                   :addsource
 
@@ -39,7 +39,8 @@ class Options
       self.engine = "latex"
       self.texbin = getDefaultBin("latex")
       self.gsbin = getDefaultBin("gs")
-
+      self.downscale = 2
+      
       self.epsMeta = false
       self.addsource = false
 
@@ -125,10 +126,11 @@ class Options
       parser.on("-tTEMP", "--temp_dir TEMP", "Temporary working directory") { |x| self.tempdir = x }
 
       parser.separator ""
-      parser.separator "LaTeX Options:"
+      parser.separator "LaTeX/GhostScript Options:"
       parser.on("-eENGINE", "--tex-engine ENGINE", "TeX Engine", "  default: latex") { |x| self.engine = x }
       parser.on("-TTEXBIN", "--tex-bin TEXBIN", "TeX binary path", "  defaults to where-ever `whereis latex' points to.") { |x| self.texbin = x }
       parser.on("-gGSBIN", "--gs-bin GSBIN", "GhostScript binary path", "  defaults to where-ever `whereis gs' points to.") { |x| self.gsbin = x }
+      parser.on("-DDOWNSCALE", "--downscale DOWNSCALE", "GhostScript downscale factor from 1200 dpi", "  defaults to 2.") { |x| self.downscale = x }
 
       parser.separator ""
       parser.separator "Shell output control:"
@@ -201,9 +203,9 @@ class FormulaBuilder
       ".eps"  => "eps2write",
       ".ps"   => "eps2write",
       ".pdf"  => "eps2write",
-      ".png"  => "pnggray -r1200 -dDownScaleFactor=2 -dUseCropBox",
-      ".jpg"  => "jpeggray -r1200 -dDownScaleFactor=2 -dUseCropBox",
-      ".jpeg" => "jpeggray -r1200 -dDownScaleFactor=2 -dUseCropBox"
+      ".png"  => "pnggray -r1200 -dDownScaleFactor=#{@options.downscale} -dUseCropBox",
+      ".jpg"  => "jpeggray -r1200 -dDownScaleFactor=#{@options.downscale} -dUseCropBox",
+      ".jpeg" => "jpeggray -r1200 -dDownScaleFactor=#{@options.downscale} -dUseCropBox"
     }
     if devices[@options.oext]
       self.device = devices[@options.oext]
