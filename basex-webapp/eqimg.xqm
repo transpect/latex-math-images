@@ -29,7 +29,7 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
             then  
               for $f in $xml//(*:oMathPara | *:oMath[empty(parent::*:oMathPara)])
               let $basename := concat($prelim_basename, format-number(count($f/preceding::*[self::*:oMathPara | self::*:oMath[empty(parent::*:oMathPara)]])+1,'0000'))
-              return map{$basename : map{'omml' : $f, 'render-mml': eqimg:render-omml($f ! document {.}, $customization, $format, $include-tex, $include-mml, $downscale, $basename) }}
+              return map{$basename : map{'render-mml': eqimg:render-omml($f ! document {.}, $customization, $format, $include-tex, $include-mml, $downscale, $basename) }}
               ),
         $log-map := map:merge((
           map{'status': if ('error' = $omml-map?*?render-mml?status) then 'error' else 'success'},
@@ -73,8 +73,12 @@ declare
   %rest:produces("text/json")
 function eqimg:render-omml($omml as document-node(), $customization as xs:string, $format as xs:string, 
                            $include-tex as xs:boolean, $include-mml as xs:boolean, $downscale as xs:integer, $basename as xs:string?) {
-  let $mml := xslt:transform($omml, 'omml2mml.xsl')
-  return parse-json(eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml, $downscale, $basename))
+  let $result := xslt:transform-report($omml, 'omml2mml.xsl'),
+      $mml := $result?result,
+      $msgs := $result?messages
+  return if ($mml instance of document-node())
+  	 then parse-json(eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml, $downscale, $basename))
+	 else map{$basename: 'no-result'}
 };
 
 declare
@@ -86,7 +90,7 @@ declare
   %rest:query-param("downscale", "{$downscale}", 2)
   %rest:query-param("basename", "{$basename}", 'formula')
   %rest:produces("text/json")
-function eqimg:render-mml($mml as document-node(), $customization as xs:string, $format as xs:string, 
+function eqimg:render-mml($mml as document-node()?, $customization as xs:string, $format as xs:string, 
                           $include-tex as xs:boolean, $include-mml as xs:boolean, $downscale as xs:integer, $basename as xs:string?) {
   let $tmpdir as xs:string := file:create-temp-dir('eqimg', ''),
       $mml-path as xs:string := $tmpdir || '/' || $basename || '.mml',
@@ -100,7 +104,7 @@ function eqimg:render-mml($mml as document-node(), $customization as xs:string, 
       $rest-path := '/eqimg/' || $customization || '/retrieve/' || file:name($tmpdir) || '/'|| $basename,
       $job-id as xs:string := (
         file:write-text($inputfile, $tex),
-        jobs:eval('file:delete("' || $tmpdir || '", true())', (), map { 'start':'PT60M', 'end':'PT61M' })
+        jobs:eval('file:delete("' || $tmpdir || '", true())', (), map { 'start':'PT180M', 'end':'PT181M' })
       ),
       $proc-result := proc:execute(
                                    'ruby', (
@@ -131,7 +135,7 @@ function eqimg:render-mml($mml as document-node(), $customization as xs:string, 
               map{'duplicates': 'use-last'}
              ),
     map{'escape': false()}
-  )
+  ) => replace('&#xa;', ' ') => replace('&#9;', ' ')
 };
 
 declare
