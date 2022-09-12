@@ -113,7 +113,7 @@ function eqimg:render-mml($mml as document-node()?, $customization as xs:string,
                                      (if ($include-mml) then ('-E', '-M', $mml-path) else ()),
                                      '-V', $customization, '-D', string($downscale)
                                    ),
-                                   map{'dir': $invocation-dir}
+                                   map{'dir': $invocation-dir, 'timeout': 60}
                                  ),
       $error := $proc-result/error,
       $props as map(xs:string, xs:string) :=
