@@ -37,14 +37,20 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
         $bad-files as xs:string* := map:for-each($omml-map, function($key, $value){
                                       if ($value?status = 'error') then map:get($value, 'texlog') => replace('^.*/retrieve/', '')
                                      }),
+        $stripped-omml-map := map:merge(
+                                map:for-each($omml-map, function($key, $value) {
+                                                          map{ string-join(($key, '.', if ($value?status = 'error') then 'texlog' else $format)): 
+                                                               map:remove($value, ('png', 'jpg', 'eps', 'svg', 'texlog')) }
+                                                        })
+                              ),
         $log-map := map:merge(
           (
-            map{'status': if ('error' = $omml-map?*?status) then 'error' else 'success'},
-            if ('error' = $omml-map?*?status) 
+            map{'status': if ('error' = $stripped-omml-map?*?status) then 'error' else 'success'},
+            if ('error' = $stripped-omml-map?*?status) 
             then map{'message': 'One or more errors occured. The result contains the specific log files for each problematic formula. rendering'} else (), 
             map{'success': count($good-files)},
             map{'error': count($bad-files)},
-            map{'rendering-output' : $omml-map}
+            map{'rendering-output' : $stripped-omml-map}
           )
         ),
         $archive := archive:create(
@@ -74,7 +80,7 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
             return (
               file:read-binary($tmpdir || $file), 
               json:serialize(
-                map:get($omml-map, file:name($base-with-path)),
+                map:get($stripped-omml-map, file:name($file)),
                 map{'escape': false()}
               ),
               file:read-binary($tmpdir || $base-with-path || '.log'),
@@ -86,12 +92,12 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
             return (
               file:read-binary($tmpdir || $file), 
               json:serialize(
-                map:get($omml-map, file:name($base-with-path)),
+                map:get($stripped-omml-map, file:name($file)),
                 map{'escape': false()}
               ),
               file:read-binary($tmpdir || $base-with-path || '.tex'),
               file:read-binary($tmpdir || $base-with-path || '.mml')
-            ), 
+            ),
             json:serialize($log-map,map{'escape': false()})
           )
         ),
