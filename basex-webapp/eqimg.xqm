@@ -27,21 +27,29 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
             then  
               for $f in $xml//(*:oMathPara | *:oMath[empty(parent::*:oMathPara)])
               let $basename := concat($prelim_basename, format-number(count($f/preceding::*[self::*:oMathPara | self::*:oMath[empty(parent::*:oMathPara)]])+1,'0000'))
-              return map{$basename : map{'render-mml': eqimg:render-omml($f ! document {.}, $customization, $format, false(), 
-                                                                         false(), $downscale, $basename, false(), $tmpdir) }}
-              ),
-        $log-map := map:merge((
-          map{'status': if ('error' = $omml-map?*?render-mml?status) then 'error' else 'success'},
-         if ('error' = $omml-map?*?render-mml?status) then map{'message': 'One or more errors occured. The result contains the specific log files for each problematic formula. rendering'}, 
-          map{'rendering-output' : $omml-map})),
-        $files as item()* := map:for-each($omml-map, function($key, $value){ 
-           for $r in (map:get(map:get($value,'render-mml'), $format), 
-                     if (map:get(map:get($value,'render-mml'), 'status') = 'error') then map:get(map:get($value,'render-mml'), 'texlog')) 
-                  return replace($r, '.*/retrieve/', '/')
-            }), 
+              return map{$basename : eqimg:render-omml($f ! document {.}, $customization, $format, false(), 
+                                                                         false(), $downscale, $basename, false(), $tmpdir)
+                        }
+        ),
+        $good-files as xs:string* := map:for-each($omml-map, function($key, $value){
+                                      if ($value?status = 'error') then () else map:get($value, $format) => replace('^.*/retrieve/', '')
+                                     }),
+        $bad-files as xs:string* := map:for-each($omml-map, function($key, $value){
+                                      if ($value?status = 'error') then map:get($value, 'texlog') => replace('^.*/retrieve/', '')
+                                     }),
+        $log-map := map:merge(
+          (
+            map{'status': if ('error' = $omml-map?*?status) then 'error' else 'success'},
+            if ('error' = $omml-map?*?status) 
+            then map{'message': 'One or more errors occured. The result contains the specific log files for each problematic formula. rendering'} else (), 
+            map{'success': count($good-files)},
+            map{'error': count($bad-files)},
+            map{'rendering-output' : $omml-map}
+          )
+        ),
         $archive := archive:create(
           (
-            for $file in $files
+            for $file in $good-files
             let $fn := file:name($file), 
                 $base := replace($fn,'\..*$', '')
             return ('img/' || $fn, 
@@ -49,11 +57,19 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
                     'texlog/' || $base || '.log',
                     'tex/' || $base || '.tex',
                     'mml/' || $base || '.mml'
+                    ),
+            for $file in $bad-files
+            let $fn := file:name($file), 
+                $base := replace($fn,'\..*$', '')
+            return ('json/' || $base || '.json', 
+                    'texlog/' || $fn,
+                    'tex/' || $base || '.tex',
+                    'mml/' || $base || '.mml'
                     ), 
-              'json/' || $docx-basename || '_' ||  $basename || '_all.json'
+            $docx-basename || '_' ||  $basename || '.json'
           ),
           (
-            for $file in $files
+            for $file in $good-files
             let $base-with-path := replace($file,'\..*$', '')
             return (
               file:read-binary($tmpdir || $file), 
@@ -62,6 +78,17 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
                 map{'escape': false()}
               ),
               file:read-binary($tmpdir || $base-with-path || '.log'),
+              file:read-binary($tmpdir || $base-with-path || '.tex'),
+              file:read-binary($tmpdir || $base-with-path || '.mml')
+            ),
+            for $file in $bad-files
+            let $base-with-path := replace($file,'\..*$', '')
+            return (
+              file:read-binary($tmpdir || $file), 
+              json:serialize(
+                map:get($omml-map, file:name($base-with-path)),
+                map{'escape': false()}
+              ),
               file:read-binary($tmpdir || $base-with-path || '.tex'),
               file:read-binary($tmpdir || $base-with-path || '.mml')
             ), 
