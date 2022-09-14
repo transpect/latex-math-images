@@ -117,9 +117,17 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
   )
 };
 
+declare 
+%updating
+function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, $name as xs:string, 
+                             $format as xs:string, $downscale as xs:integer) {
+  let $json := eqimg:render-docx-formulas($customization, $tmpdir, $name, $format, $downscale),
+      $parsed-json := json:parse($json)
+  return db:replace('conversionresults', string-join(($name, convert:integer-to-dateTime(prof:current-ms())), '_'), $parsed-json) 
+};
 
 declare
-function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, $name as xs:string, 
+function eqimg:render-docx-formulas($customization as xs:string, $tmpdir as xs:string, $name as xs:string, 
                              $format as xs:string, $downscale as xs:integer) {
     let $basename := 'formula',
         $docx-basename := replace($name, '(.+/)?([^\.]+)\..*', '$2'),
@@ -448,7 +456,8 @@ function eqimg:upload-dispatcher($customization, $file-map, $format, $downscale 
                         || '&amp;filename=' || $normalized-filename || '&amp;format=' || $format
                         || '&amp;downscale=' || $downscale)
          )),
-  if (db:exists('conversionjobs')) then () else db:create('conversionjobs')
+  if (db:exists('conversionjobs')) then () else db:create('conversionjobs'),
+  if (db:exists('conversionresults')) then () else db:create('conversionresults')
 };
 
 declare variable $eqimg:nsdecl := 'import module namespace eqimg="http://transpect.io/eqimg" at "eqimg.xqm"; ';
@@ -469,7 +478,7 @@ function eqimg:schedule($customization, $type, $tmpdir, $filename, $format, $dow
                                                'eqimg:schedule-docx("' || $customization || '", "' || $tmpdir || 
                                                                     '", "' || $filename || '", "' || $format || 
                                                                     '", ' || $downscale|| ')',
-                                                                    (), map { 'cache': true() }
+                                                                    (), map { 'start':'PT0.1S' }
                                               )
                   default return ()
   return db:replace('conversionjobs', string-join(($jobid, $type, $filename), '_'), jobs:list-details($jobid))
