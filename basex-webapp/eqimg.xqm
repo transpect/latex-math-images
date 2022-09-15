@@ -274,6 +274,7 @@ function eqimg:select($customization) {
 };
 
 declare function eqimg:list-results($customization as xs:string) as item()* {
+  if (db:exists('conversionjobs')) then
   let $results := db:open('conversionjobs')/json[delete-job-id = jobs:list()],
       $result-jobs := db:open('conversionjobs')/job[let $ntd := replace(@tmpdir, '^/tmp/', '') 
                                                     return some $r in $results/result satisfies (contains($r, $ntd))],
@@ -318,6 +319,7 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
          <p>all-jobs: {count($all-jobs)}</p>,
            <p>Conversion results will be kept for 3 hours.</p>
          )
+   else ()
 };
 
 declare 
