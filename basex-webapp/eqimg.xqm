@@ -268,37 +268,56 @@ function eqimg:select($customization) {
         <button>Submit</button>
       </p>
     </form>
-    {(:eqimg:list-results($customization):)}
+    {eqimg:list-results($customization)}
   </main> 
   return eqimg:html((), 'Upload', $maincontent)
 };
 
 declare function eqimg:list-results($customization as xs:string) as item()* {
-  let $jobs as element(job)* := db:open('conversionjobs')/job,
-      $job-ids as xs:string* := $jobs/@id ! string(.),
-      $results as xs:string* := $jobs ! jobs:result(.),
-      $parsed-results as element(json)* := $results ! json:parse(.)
-  return if (exists($parsed-results))
+  let $results := db:open('conversionjobs')/json[delete-job-id = jobs:list()],
+      $result-jobs := db:open('conversionjobs')/job[let $ntd := replace(@tmpdir, '^/tmp/', '') 
+                                                    return some $r in $results/result satisfies (contains($r, $ntd))],
+      $cached-jobs := db:open('conversionjobs')/job[jobs:list-details(@id)/@state = 'cached'],
+      $running-jobs := db:open('conversionjobs')/job[jobs:list-details(@id)/@state = 'running'],
+      $scheduled-jobs := db:open('conversionjobs')/job[jobs:list-details(@id)/@state = 'scheduled'],
+      $all-jobs := ($result-jobs, $cached-jobs, $running-jobs, $scheduled-jobs)
+  return if (exists($all-jobs))
          then (
                 <h2>Recent conversions</h2>,
                 <table>
                   <tr>
                     <th>File</th>
+                    <th>Timestamp</th>
                     <th>Status</th>
+                    <th>Format</th>
+                    <th>Downscale</th>
                     <th>Download</th>
                     <th>Details</th>
                   </tr>
-                  {for $pr in $parsed-results 
+                  {for $j in $all-jobs
+                   let $r := $results[let $ntd := replace($j/@tmpdir, '^/tmp/', '')
+                                      return contains(result, $ntd)] 
                    return <tr>
-                      <td>{$pr/input}</td>
-                      <td>{$pr/status}</td>
-                      <td><a href="{$pr/result}">zip</a></td>
-                      <td><a href="/eqimg/{$customization}/zip-details?zip={$pr/result => replace('^.+/retrieve/', '')}">preview</a></td>
+                      <td>{string($j/@filename)}</td>
+                      <td>{fn:adjust-dateTime-to-timezone($j/@start)}</td>
+                      <td>{($r/status, string(jobs:list-details($j/@id)/@state))[1]}</td>
+                      <td>{string($j/@format)}</td>
+                      <td>{string($j/@downscale)}</td>
+                      <td>{if (exists($r)) then <a href="{$r/result}">zip</a> else ()}</td>
+                      <td>{if (exists($r)) then <a 
+                        href="/eqimg/{$customization}/zip-details?zip={$r/result ! replace(., '^.+/retrieve/', '')}">preview</a>
+                        else ()}</td>
                    </tr>
                   }
-                </table>
+                </table>,
+                <p>Conversion results will be kept for 3 hours.</p>
               )
-         else ()
+         else (
+         <p>results: {count($results)}</p>,
+         <p>result-jobs: {count($result-jobs)}</p>,
+         <p>all-jobs: {count($all-jobs)}</p>,
+           <p>Conversion results will be kept for 3 hours.</p>
+         )
 };
 
 declare 
@@ -319,6 +338,7 @@ declare function eqimg:html ($body-class as xs:string?, $title as xs:string, $ma
       <title>{$title}</title>
       <style>
       body {{ font-family: sans-serif; }}
+      form {{ border-top: solid black 1pt; border-bottom: solid black 1pt; }}
       </style>
     </head>
     <body>{if ($body-class) then attribute class {$body-class} else ()}
@@ -393,6 +413,16 @@ function eqimg:schedule($customization, $type, $tmpdir, $filename, $format, $dow
                                                                     (), map { 'start':'PT0.1S', 'cache': true() }
                                               )
                   default return ()
-  return db:replace('conversionjobs', string-join(($jobid, $type, $filename), '_'), jobs:list-details($jobid))
+  let $enhanced := copy $details := jobs:list-details($jobid)
+                   modify (
+                     insert nodes (
+                       attribute downscale { $downscale },
+                       attribute format { $format },
+                       attribute filename { $filename },
+                       attribute tmpdir { $tmpdir }
+                     ) into $details
+                   )
+                   return $details
+  return db:replace('conversionjobs', string-join(($jobid, $type, $filename), '_'), $enhanced)
 };
 
