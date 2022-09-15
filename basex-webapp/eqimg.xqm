@@ -13,108 +13,12 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
   let $tmpdir as xs:string := file:create-temp-dir('docx-eqimg_', '')
   for $name in map:keys($docx-map)
     let $docx := ($docx-map($name))[1],
-        $basename := 'formula',
-        $docx-basename := replace($name, '(.+/)?([^\.]+)\..*', '$2'),
-        $zip-basename :=  $docx-basename || '_' ||  $basename || '.zip',
-        $rest-path := '/eqimg/' || $customization || '/retrieve/' || file:name($tmpdir) || '/',
-        $entries := archive:entries($docx)[matches(., 'word/(endnotes|footnotes|document)\d*?.xml$')],
-        $job-id as xs:string := jobs:eval('file:delete("' || $tmpdir || '", true())', (), map { 'start':'PT180M', 'end':'PT181M' }),
-        $omml-map as map(xs:string, item()?) := map:merge(
-          for $e in $entries
-          let $xml as document-node()? := parse-xml(archive:extract-text($docx, $e)),
-              $prefix  := replace($e, '.*/(f|d|e)[^\d]+(\d+)?\.*', '$1$2'),
-              $prelim_basename := $basename || '_' || (if (matches($prefix, '\d$')) then $prefix else concat($prefix,'0_'))
-          return 
-            if (exists($xml//(*:oMathPara | *:oMath[empty(parent::*:oMathPara)])))
-            then  
-              for $f in $xml//(*:oMathPara | *:oMath[empty(parent::*:oMathPara)])
-              let $basename := concat($prelim_basename, format-number(count($f/preceding::*[self::*:oMathPara | self::*:oMath[empty(parent::*:oMathPara)]])+1,'0000'))
-              return map{$basename : eqimg:render-omml($f ! document {.}, $customization, $format, false(), 
-                                                                         false(), $downscale, $basename, false(), $tmpdir)
-                        }
-        ),
-        $good-files as xs:string* := map:for-each($omml-map, function($key, $value){
-                                      if ($value?status = 'error') then () else map:get($value, $format) => replace('^.*/retrieve/', '')
-                                     }),
-        $bad-files as xs:string* := map:for-each($omml-map, function($key, $value){
-                                      if ($value?status = 'error') then map:get($value, 'texlog') => replace('^.*/retrieve/', '')
-                                     }),
-        $stripped-omml-map := map:merge(
-                                map:for-each($omml-map, function($key, $value) {
-                                                          map{ string-join(($key, '.', if ($value?status = 'error') then 'texlog' else $format)): 
-                                                               map:remove($value, ('png', 'jpg', 'eps', 'svg', 'texlog')) }
-                                                        })
-                              ),
-        $log-map := map:merge(
-          (
-            map{'status': if ('error' = $stripped-omml-map?*?status) then 'error' else 'success'},
-            if ('error' = $stripped-omml-map?*?status) 
-            then map{'message': 'One or more errors occured. The result contains the specific log files for each problematic formula. rendering'} else (), 
-            map{'success': count($good-files)},
-            map{'error': count($bad-files)},
-            map{'rendering-output' : $stripped-omml-map}
-          )
-        ),
-        $archive := archive:create(
-          (
-            for $file in $good-files
-            let $fn := file:name($file), 
-                $base := replace($fn,'\..*$', '')
-            return ('img/' || $fn, 
-                    'json/' || $base || '.json', 
-                    'texlog/' || $base || '.log',
-                    'tex/' || $base || '.tex',
-                    'mml/' || $base || '.mml'
-                    ),
-            for $file in $bad-files
-            let $fn := file:name($file), 
-                $base := replace($fn,'\..*$', '')
-            return ('json/' || $base || '.json', 
-                    'texlog/' || $fn,
-                    'tex/' || $base || '.tex',
-                    'mml/' || $base || '.mml'
-                    ), 
-            $docx-basename || '_' ||  $basename || '.json'
-          ),
-          (
-            for $file in $good-files
-            let $base-with-path := replace($file,'\..*$', '')
-            return (
-              file:read-binary($tmpdir || $file), 
-              json:serialize(
-                map:get($stripped-omml-map, file:name($file)),
-                map{'escape': false()}
-              ),
-              file:read-binary($tmpdir || $base-with-path || '.log'),
-              file:read-binary($tmpdir || $base-with-path || '.tex'),
-              file:read-binary($tmpdir || $base-with-path || '.mml')
-            ),
-            for $file in $bad-files
-            let $base-with-path := replace($file,'\..*$', '')
-            return (
-              file:read-binary($tmpdir || $file), 
-              json:serialize(
-                map:get($stripped-omml-map, file:name($file)),
-                map{'escape': false()}
-              ),
-              file:read-binary($tmpdir || $base-with-path || '.tex'),
-              file:read-binary($tmpdir || $base-with-path || '.mml')
-            ),
-            json:serialize($log-map,map{'escape': false()})
-          )
-        ),
-        $store := file:write-binary($tmpdir || '/' || $zip-basename, $archive)
-    return json:serialize(
-    map:merge(( 
-                map{'input': $name },
-                map{ 'status' : $log-map?status},
-                if ($log-map?status = 'error') then map{ 'message' : $log-map?message},
-                map{'result': $rest-path || $zip-basename }
-             ),
-              map{'duplicates': 'use-last'}
-             ),
-    map{'escape': false()}
-  )
+        $normalized-name := $name => replace('[^\w.]', '_'),
+        $nothing := file:write-binary($tmpdir || $normalized-name, $docx)
+    return eqimg:schedule-docx($customization, $tmpdir, $normalized-name, $format, $downscale)
+           => parse-json()
+           => map:remove('delete-job-id')
+           => json:serialize(map{'escape': false()})
 };
 
 declare
