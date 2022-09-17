@@ -256,8 +256,8 @@ function eqimg:select($customization) {
         </select>
       </p>
       <p>
-        <label for="downscale">Downscale factor: </label>
-        <select id="downscale">
+        <label for="downscale">Downscale factor (for raster formats): </label>
+        <select id="downscale" name="downscale">
           <option value="1">1</option>
           <option value="2" selected="true">2</option>
           <option value="4">4</option>
@@ -276,19 +276,18 @@ function eqimg:select($customization) {
 declare function eqimg:list-results($customization as xs:string) as item()* {
   if (db:exists('conversionjobs')) then
   let $results := db:open('conversionjobs')/json[delete-job-id = jobs:list()],
-      $result-jobs := db:open('conversionjobs')/job[let $ntd := replace(@tmpdir, '^/tmp/', '') 
-                                                    return some $r in $results/result satisfies (contains($r, $ntd))],
-      $cached-jobs := db:open('conversionjobs')/job[jobs:list-details(@id)/@state = 'cached'],
-      $running-jobs := db:open('conversionjobs')/job[jobs:list-details(@id)/@state = 'running'],
-      $scheduled-jobs := db:open('conversionjobs')/job[jobs:list-details(@id)/@state = 'scheduled'],
-      $all-jobs := ($result-jobs, $cached-jobs, $running-jobs, $scheduled-jobs)
+      $all-jobs := db:open('conversionjobs')/job[@id = $results/@id
+                                                    or 
+                                                    jobs:list-details(@id)/@state = ('cached', 'running', 'scheduled') ]
   return if (exists($all-jobs))
          then (
-                <h2>Recent conversions</h2>,
+                <h2>Recent conversions  <button onClick="window.location.reload();"
+                                            title="or hit Ctrl-R, F5, etc.">refresh</button></h2>,
                 <table>
                   <tr>
                     <th>File</th>
-                    <th>Timestamp</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Duration</th>
                     <th>Status</th>
                     <th>Format</th>
                     <th>Downscale</th>
@@ -296,11 +295,13 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
                     <th>Details</th>
                   </tr>
                   {for $j in $all-jobs
-                   let $r := $results[let $ntd := replace($j/@tmpdir, '^/tmp/', '')
-                                      return contains(result, $ntd)] 
+                   let $r := $results[@id = $j/@id]
+                   order by $j/@start descending 
                    return <tr>
                       <td>{string($j/@filename)}</td>
-                      <td>{fn:adjust-dateTime-to-timezone($j/@start)}</td>
+                      <td>{string($j/@start)}</td>
+                      <td>{($r/@duration, ($j/@id => jobs:list-details())/@duration)[1] ! (hours-from-duration(.), minutes-from-duration(.) => xs:integer() => format-integer('00'), 
+                                                              seconds-from-duration(.) => xs:integer() => format-integer('00')) => string-join(':')}</td>
                       <td>{($r/status, string(jobs:list-details($j/@id)/@state))[1]}</td>
                       <td>{string($j/@format)}</td>
                       <td>{string($j/@downscale)}</td>
@@ -314,9 +315,6 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
                 <p>Conversion results will be kept for 3 hours.</p>
               )
          else (
-         <p>results: {count($results)}</p>,
-         <p>result-jobs: {count($result-jobs)}</p>,
-         <p>all-jobs: {count($all-jobs)}</p>,
            <p>Conversion results will be kept for 3 hours.</p>
          )
    else ()
@@ -325,12 +323,17 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
 declare 
 %updating
 function eqimg:glean-job-results($customization as xs:string) {
-  let $jobs as element(job)* := db:open('conversionjobs')/job,
-      $job-ids as xs:string* := $jobs/@id ! string(.),
-      $results as xs:string* := $job-ids ! jobs:result(.),
-      $parsed-results as document-node(element(json))* := $results ! json:parse(.)
-  return for $pr in $parsed-results
-         return db:replace('conversionjobs', string($pr/json/result), $pr)
+  let $jobs as element(job)* := db:open('conversionjobs')/job
+  return 
+    for $jid in $jobs/@id ! string(.)
+    let $jd := jobs:list-details($jid)[@state = 'cached']
+    return 
+      for $result as xs:string? in jobs:result($jid)
+      let $parsed-result as element(json) := json:parse($result)/json,
+          $enhanced := copy $pr := $parsed-result
+                       modify ( insert nodes $jd/(@* except @type) into $pr )
+                       return $pr
+      return db:replace('conversionjobs', string-join(($enhanced/(@id, result)), '_'), $enhanced)
 };
 
 declare function eqimg:html ($body-class as xs:string?, $title as xs:string, $maincontent as item()*) {
@@ -341,6 +344,9 @@ declare function eqimg:html ($body-class as xs:string?, $title as xs:string, $ma
       <style>
       body {{ font-family: sans-serif; }}
       form {{ border-top: solid black 1pt; border-bottom: solid black 1pt; }}
+      table {{ border-collapse: collapse; }}
+      td, th {{ padding: 0.4em; }}
+      td, th, table {{ border: solid black 1pt; }}
       </style>
     </head>
     <body>{if ($body-class) then attribute class {$body-class} else ()}
@@ -353,10 +359,10 @@ declare
   %rest:POST
   %rest:path("/eqimg/{$customization}/upload-dispatcher")
   %rest:form-param("file", "{$file-map}")
-  %rest:query-param("format", "{$format}", 'png')
-  %rest:query-param("downscale", "{$downscale}", 2)
+  %rest:form-param("format", "{$format}", 'png')
+  %rest:form-param("downscale", "{$downscale}", "2")
   %updating
-function eqimg:upload-dispatcher($customization, $file-map, $format, $downscale as xs:integer) {
+function eqimg:upload-dispatcher($customization, $file-map, $format, $downscale as xs:string) {
   (: because of the redirect below, more than one uploaded file probably cannot
      be processed and should be flagged as an error :)
   for $filename in map:keys($file-map)
