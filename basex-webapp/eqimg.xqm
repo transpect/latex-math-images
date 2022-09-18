@@ -185,7 +185,7 @@ function eqimg:render-mml($mml as document-node()?, $customization as xs:string,
                                 'build_formula.rb',
                                 '-i', $inputfile, '-o', $outfile, '-l', $logfile, '-m', $jsonfile,
                                 (if ($include-mml) then ('-E', '-M', $mml-path) else ()),
-                                '-V', $customization, '-D', string($downscale)
+                                '-V', $customization, '-D', string($downscale), '-t', $tmpdir || 'work'
                               ),
       (: for debugging purposes :)
       $nothing3 := file:write-text($inputfile || '.args', string-join($args, ' ')),
@@ -326,13 +326,14 @@ function eqimg:glean-job-results($customization as xs:string) {
   let $jobs as element(job)* := db:open('conversionjobs')/job
   return 
     for $jid in $jobs/@id ! string(.)
-    let $jd := jobs:list-details($jid)[@state = 'cached']
+    let $jd := jobs:list-details($jid)
+    where $jd/@state = 'cached'
     return 
       for $result as xs:string? in jobs:result($jid)
       let $parsed-result as element(json) := json:parse($result)/json,
-          $enhanced := copy $pr := $parsed-result
-                       modify ( insert nodes $jd/(@* except @type) into $pr )
-                       return $pr
+          $enhanced as element(json) := copy $pr := $parsed-result
+                                        modify ( insert nodes $jd/(@* except @type) into $pr )
+                                        return $pr
       return db:replace('conversionjobs', string-join(($enhanced/(@id, result)), '_'), $enhanced)
 };
 
