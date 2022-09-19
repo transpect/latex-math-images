@@ -292,7 +292,7 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
                     <th>Format</th>
                     <th>Downscale</th>
                     <th>Download</th>
-                    <th>Details</th>
+                    {(:<th>Details</th>:)}
                   </tr>
                   {for $j in $all-jobs
                    let $r := $results[@id = $j/@id]
@@ -306,9 +306,9 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
                       <td>{string($j/@format)}</td>
                       <td>{string($j/@downscale)}</td>
                       <td>{if (exists($r)) then <a href="{$r/result}">zip</a> else ()}</td>
-                      <td>{if (exists($r)) then <a 
+                      {(:<td>{if (exists($r)) then <a 
                         href="/eqimg/{$customization}/zip-details?zip={$r/result ! replace(., '^.+/retrieve/', '')}">preview</a>
-                        else ()}</td>
+                        else ()}</td>:)}
                    </tr>
                   }
                 </table>,
