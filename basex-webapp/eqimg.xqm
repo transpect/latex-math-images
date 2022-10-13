@@ -46,15 +46,30 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
                         }
         ),
         $good-files as xs:string* := map:for-each($omml-map, function($key, $value){
-                                      if ($value?status = 'error') then () else map:get($value, $format) => replace('^.*/retrieve/', '')
+                                      if ($value?status = ('no-result', 'error')) then () 
+                                      else map:get($value, $format) => replace('^.*/retrieve/', '')
                                      }),
         $bad-files as xs:string* := map:for-each($omml-map, function($key, $value){
                                       if ($value?status = 'error') then map:get($value, 'texlog') => replace('^.*/retrieve/', '')
+                                      else ()
+                                     }),
+        $nomml-files as xs:string* := map:for-each($omml-map, function($key, $value){
+                                      if ($value?status = 'no-result') then
+                                        let $msgfile := $tmpdir || 'no-mml/' || $value?basename || '.omml2mml.log',
+                                            $ommlfile := $msgfile => replace('2mml.log$', '')
+                                        return (
+                                          file:create-dir($tmpdir || 'no-mml/'),
+                                          file:write-text($msgfile, $value?messages),
+                                          file:write($ommlfile, $value?omml),
+                                          $msgfile, $ommlfile
+                                        )
                                      }),
         $stripped-omml-map := map:merge(
                                 map:for-each($omml-map, function($key, $value) {
-                                                          map{ string-join(($key, '.', if ($value?status = 'error') then 'texlog' else $format)): 
-                                                               map:remove($value, ('png', 'jpg', 'eps', 'svg', 'texlog')) }
+                                                          map{ string-join(($key, '.', if ($value?status = 'error') then 'texlog' 
+                                                                                       else if ($value?status = 'no-result') then 'omml' 
+                                                                                            else $format)): 
+                                                               map:remove($value, ('png', 'jpg', 'eps', 'svg', 'texlog', 'omml')) }
                                                         })
                               ),
         $log-map := map:merge(
@@ -63,11 +78,11 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
             if ('error' = $stripped-omml-map?*?status) 
             then map{'message': 'One or more errors occured. The result contains the specific log files for each problematic formula. rendering'} else (), 
             map{'success': count($good-files)},
-            map{'error': count($bad-files)},
+            map{'error': count($bad-files) + count($nomml-files) idiv 2},
             map{'rendering-output' : $stripped-omml-map}
           )
         ),
-        $archive := archive:create(
+        $archive := try { archive:create(
           (
             for $file in $good-files
             let $fn := file:name($file), 
@@ -86,7 +101,9 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
                     'tex/' || $base || '.tex',
                     'mml/' || $base || '.mml'
                     ), 
+            $nomml-files ! replace(., '^.*/(no-mml/.+$)', '$1'),
             $docx-basename || '_' ||  $basename || '.json'
+            
           ),
           (
             for $file in $good-files
@@ -112,9 +129,12 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
               file:read-binary($tmpdir || $base-with-path || '.tex'),
               file:read-binary($tmpdir || $base-with-path || '.mml')
             ),
+            $nomml-files,
             json:serialize($log-map,map{'escape': false()})
           )
-        ),
+        ) } catch * { archive:create('error.txt', string-join((
+                                  $err:description, ' Good:', count($good-files),
+                                  ' Bad:', count($bad-files), ' No MML:', count($nomml-files)), ' ') ) } ,
         $store := file:write-binary($tmpdir || '/' || $zip-basename, $archive)
     return json:serialize(
       map:merge(( 
@@ -147,9 +167,14 @@ function eqimg:render-omml($omml as document-node(), $customization as xs:string
   let $result := xslt:transform-report($omml, 'omml2mml.xsl'),
       $mml := $result?result,
       $msgs := $result?messages
-  return if ($mml instance of document-node())
-  	 then parse-json(eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml, $downscale, $basename, $schedule-deletion, $existing-tmpdir))
-	 else map{$basename: 'no-result'}
+  return 
+    if ($mml instance of document-node())
+  	then parse-json(eqimg:render-mml($mml, $customization, $format, $include-tex, $include-mml, $downscale, $basename, $schedule-deletion, $existing-tmpdir))
+	  else if ($result?status)
+	       then $result
+	       else map{'basename': $basename, 'status': 'no-result', 
+	                'messages': $msgs => replace('(&quot;)', '\\$1') => replace('[&#xa;&#x9;]', ' '),
+	                'omml': $omml}
 };
 
 declare
