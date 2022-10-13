@@ -11,6 +11,8 @@
   
   <xsl:param name="debug"  select="'no'"/>
   
+  <xsl:param name="collection-uri" as="xs:string" select="'http://transpect.io/docx2hub/xsl/fontmaps.catalog.xml'"/>
+  
   <xsl:character-map  name="cleanups">
     <!-- override docx2hub/xsl/main.xsl’s U+2011 → U+2D mapping -->
     </xsl:character-map>
