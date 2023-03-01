@@ -27,6 +27,7 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
                              $format as xs:string, $downscale as xs:integer) {
     let $basename := 'formula',
         $docx-basename := replace($name, '(.+/)?([^\.]+)\..*', '$2'),
+        $docx-ext := $name => replace('^.+\.', ''),
         $zip-basename :=  $docx-basename || '_' ||  $basename || '.zip',
         $docx := file:read-binary($tmpdir || $name),
         $rest-path := '/eqimg/' || $customization || '/retrieve/' || file:name($tmpdir) || '/',
@@ -117,7 +118,7 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
                     ), 
             $nomml-files ! replace(., '^.*/(no-mml/.+$)', '$1'),
             $docx-basename || '_' ||  $basename || '.json',
-            $docx-basename || '_patched.docx'
+            $docx-basename || '_patched.' || $docx-ext
           ),
           (
             for $file in $good-files
