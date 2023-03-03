@@ -420,6 +420,7 @@ declare function eqimg:html ($body-class as xs:string?, $title as xs:string, $ma
     </head>
     <body>{if ($body-class) then attribute class {$body-class} else ()}
       {$maincontent}
+      <p>Authorization: {request:header("Authorization")}</p>
     </body>
   </html>
 };
