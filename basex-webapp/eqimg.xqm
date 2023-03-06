@@ -15,8 +15,9 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
   for $name in map:keys($docx-map)
     let $docx := ($docx-map($name))[1],
         $normalized-name := $name => replace('[^\w.]', '_'),
+        $username as xs:string := (eqimg:parse-authorization()?username, '')[1],
         $nothing := file:write-binary($tmpdir || $normalized-name, $docx)
-    return eqimg:schedule-docx($customization, $tmpdir, $normalized-name, $format, $downscale)
+    return eqimg:schedule-docx($customization, $tmpdir, $normalized-name, $format, $downscale, $username)
            => parse-json()
            => map:remove('delete-job-id')
            => json:serialize(map{'escape': false()})
@@ -24,7 +25,7 @@ function eqimg:extract-formula($docx-map as map(xs:string, item()+), $customizat
 
 declare
 function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, $name as xs:string, 
-                             $format as xs:string, $downscale as xs:integer) {
+                             $format as xs:string, $downscale as xs:integer, $username as xs:string) {
     let $basename := 'formula',
         $docx-basename := replace($name, '(.+/)?([^\.]+)\..*', '$2'),
         $docx-ext := $name => replace('^.+\.', ''),
@@ -158,7 +159,8 @@ function eqimg:schedule-docx($customization as xs:string, $tmpdir as xs:string, 
                   map{ 'status' : $log-map?status},
                   if ($log-map?status = 'error') then map{ 'message' : $log-map?message},
                   map{'result': $rest-path || $zip-basename},
-                  map{'delete-job-id': $job-id}
+                  map{'delete-job-id': $job-id},
+                  map{'authenticated-user': $username}
                ),
                 map{'duplicates': 'use-last'}
                ),
@@ -305,7 +307,8 @@ declare
   %output:method('html')
   %output:version('5.0')
 function eqimg:select($customization) {
-  let $maincontent := <main>
+  let $username as xs:string := (eqimg:parse-authorization()?username, '')[1],
+      $maincontent := <main>
     <h1>Math Renderer</h1>
     <p>See <a href="https://subversion.le-tex.de/common/math-renderer/README.html">the documentation</a>
     for the options available, for command-line / HTTP client invocation, and for instructions on how
@@ -336,17 +339,18 @@ function eqimg:select($customization) {
         <button>Submit</button>
       </p>
     </form>
-    {eqimg:list-results($customization)}
+    {eqimg:list-results($customization, $username)}
   </main> 
   return eqimg:html((), 'Upload', $maincontent)
 };
 
-declare function eqimg:list-results($customization as xs:string) as item()* {
+declare function eqimg:list-results($customization as xs:string, $username as xs:string) as item()* {
   if (db:exists('conversionjobs')) then
-  let $results := db:open('conversionjobs')/json[delete-job-id = jobs:list()],
-      $all-jobs := db:open('conversionjobs')/job[@id = $results/@id
-                                                    or 
-                                                    jobs:list-details(@id)/@state = ('cached', 'running', 'scheduled') ]
+  let $results := db:open('conversionjobs')/json[delete-job-id = jobs:list()][string(authenticated-user) = $username],
+      $all-jobs := db:open('conversionjobs')/job[string(@authenticated-user) = $username]
+                                                [@id = $results/@id
+                                                 or 
+                                                 jobs:list-details(@id)/@state = ('cached', 'running', 'scheduled')]
   return if (exists($all-jobs))
          then (
                 <h2>Recent conversions  <button onClick="window.location.reload();"
@@ -389,7 +393,7 @@ declare function eqimg:list-results($customization as xs:string) as item()* {
 };
 
 declare 
-%updating
+  %updating
 function eqimg:glean-job-results($customization as xs:string) {
   let $jobs as element(job)* := db:open('conversionjobs')/job
   return 
@@ -404,6 +408,22 @@ function eqimg:glean-job-results($customization as xs:string) {
                                         return $pr
       return db:replace('conversionjobs', string-join(($enhanced/(@id, result)), '_'), $enhanced)
 };
+
+declare 
+  %rest:GET
+  %rest:path("/eqimg/{$customization}/glean")
+function eqimg:glean-job-results2($customization as xs:string) {
+  let $jobs as element(job)* := db:open('conversionjobs')/job
+  return 
+  <html><head><title>glean</title></head><body><pre>{
+    for $jid in $jobs/@id ! string(.)
+    let $jd := jobs:list-details($jid)
+    where $jd/@state = 'cached'
+    for $result as xs:string? in jobs:result($jid)
+      return $result
+  }</pre></body></html>
+};
+
 
 declare function eqimg:html ($body-class as xs:string?, $title as xs:string, $maincontent as item()*) {
   <html>
@@ -420,7 +440,6 @@ declare function eqimg:html ($body-class as xs:string?, $title as xs:string, $ma
     </head>
     <body>{if ($body-class) then attribute class {$body-class} else ()}
       {$maincontent}
-      <p>Authorization: {request:header("Authorization")}</p>
     </body>
   </html>
 };
@@ -483,11 +502,13 @@ declare
   %updating
 function eqimg:schedule($customization, $type, $tmpdir, $filename, $format, $downscale as xs:integer) {
   update:output(web:redirect('/eqimg/' || $customization || '/select')),
+  let $username as xs:string := (eqimg:parse-authorization()?username, '')[1]
+  return
   for $jobid in switch($type)
                   case 'Word' return jobs:eval($eqimg:nsdecl ||
                                                'eqimg:schedule-docx("' || $customization || '", "' || $tmpdir || 
                                                                     '", "' || $filename || '", "' || $format || 
-                                                                    '", ' || $downscale|| ')',
+                                                                    '", ' || $downscale|| ', "' || $username|| '")',
                                                                     (), map { 'start':'PT0.1S', 'cache': true() }
                                               )
                   default return ()
@@ -497,10 +518,19 @@ function eqimg:schedule($customization, $type, $tmpdir, $filename, $format, $dow
                        attribute downscale { $downscale },
                        attribute format { $format },
                        attribute filename { $filename },
-                       attribute tmpdir { $tmpdir }
+                       attribute tmpdir { $tmpdir },
+                       attribute authenticated-user { $username }
                      ) into $details
                    )
                    return $details
   return db:replace('conversionjobs', string-join(($jobid, $type, $filename), '_'), $enhanced)
 };
 
+declare function eqimg:parse-authorization() as map(xs:string, xs:string)? {
+  for $h in request:header("Authorization")
+  let $credentials := $h => substring(6)
+                         => xs:base64Binary()
+                         => bin:decode-string()
+                         => tokenize(':')
+  return map{'username':$credentials[1],'cert-path':'', 'password': $credentials[2]}
+};
