@@ -11,6 +11,7 @@
   <xsl:import href="http://transpect.io/mml2tex/xsl/mml2tex.xsl"/>
   
   <xsl:param name="debug"  select="'no'"/>
+  <xsl:param name="fail-on-error" select="'no'"/>
   
   <xsl:template match="/">
     <xsl:variable name="omml2tex" as="map(xs:string, item())" 
@@ -19,7 +20,8 @@
                              'source-node': /,
                              'initial-mode': xs:QName('mathml2tex'),
                              'stylesheet-params':map {xs:QName('debug'): $debug,
-                                                      xs:QName('katex'): 'yes'}
+                                                      xs:QName('katex'): 'yes',
+                                                      xs:QName('fail-on-error'): $fail-on-error}
                            })">
       <!-- katex=yes: Only use \left and \right when processing mfenced, not for parentheses in mo elts -->
     </xsl:variable>
